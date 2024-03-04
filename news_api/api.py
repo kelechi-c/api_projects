@@ -1,7 +1,12 @@
 from fastapi import FastAPI
-from pydantic import BaseModel
 from bs4 import BeautifulSoup
-import requests
+from selenium import webdriver
+from selenium.webdriver.firefox.options import Options
+
+opts = Options()
+opts.add_argument('--headless')
+opts.add_argument('--disable-gpu')
+
 
 
 news_api = FastAPI() 
@@ -13,30 +18,26 @@ class WebScraper:
     
     def get_page(self):
         try:
-            response = requests.get(self.url)
-            response.raise_for_status()
+            driver = webdriver.Firefox()
+            driver.get(self.url)
+    
+            response = driver.page_source
+            driver.quit()
             
             self.soup = BeautifulSoup(response.content, 'lxml')
             
-        except requests.exceptions.RequestException as e:
-            print(f'Error in scraping: {e}')
+        except:
+            print('Error in scraping:')
+            
                     
     def find_element(self, tag, class_selector):
         if not self.soup:
             self.get_page()
-            
-        return self.soup.select(f'{tag}', class_=f'{class_selector}')
-    
-    def extract_text(self, elements, attributes=None):
-        if not elements:
-            return []
         
-        if attributes:
-            return [element[attributes] for element in elements]
-        else:
-             return [element.get_text(strip=True) for element in elements]
+        text = self.soup.select(f'{tag}', class_=f'{class_selector}')
         
-    
+        return text
+
 
 
 @news_api.get('/')
